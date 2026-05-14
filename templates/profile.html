@@ -5,6 +5,13 @@
 {% endblock %}
 {% block content %}
 <div class="page-content">
+  {% if not user %}
+  <div class="card" style="text-align:center;padding:40px;">
+    <div style="font-size:48px;margin-bottom:12px;">⚠️</div>
+    <div style="font-size:16px;font-weight:800;color:var(--text);">Session expired</div>
+    <div style="font-size:14px;color:var(--muted);margin-top:8px;">Please <a href="/login" style="color:var(--green);">log in again</a></div>
+  </div>
+  {% else %}
   <div class="card" style="text-align:center;margin-bottom:12px;">
     <div class="avatar-lg">
       {% if user['avatar'] %}<img src="{{user['avatar']}}" alt="{{user['name']}}">{% else %}{{user['name'][0]}}{% endif %}
@@ -67,6 +74,7 @@
     <div style="font-size:14px;font-weight:800;color:var(--gd);margin-bottom:4px;">🏅 Points System</div>
     <div style="font-size:13px;color:var(--gd);font-weight:700;">Urgent = 10 pts · Medium = 7 pts · Normal = 5 pts</div>
   </div>
+  {% endif %}
   {% endif %}
 </div>
 <script>

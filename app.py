@@ -53,7 +53,12 @@ def login_required(f):
     return decorated
 
 def set_session(user):
-    user_dict = dict(user)
+    if user is None:
+        return
+    try:
+        user_dict = dict(user)
+    except:
+        user_dict = {}
     session.update({
         'user_id':       user_dict.get('id'),
         'user_name':     user_dict.get('name',''),
@@ -455,6 +460,11 @@ def map_requests():
 def profile():
     conn = get_db()
     user = conn.execute('SELECT * FROM users WHERE id=?', (session['user_id'],)).fetchone()
+    if user is None:
+        session.clear()
+        flash('Session expired. Please log in again.', 'error')
+        conn.close()
+        return redirect(url_for('login'))
     if session['user_role'] == 'volunteer':
         completed = conn.execute("SELECT COUNT(*) FROM requests WHERE volunteer_id=? AND status='completed'", (session['user_id'],)).fetchone()[0]
         accepted  = conn.execute("SELECT COUNT(*) FROM requests WHERE volunteer_id=? AND status='accepted'", (session['user_id'],)).fetchone()[0]
