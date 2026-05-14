@@ -28,41 +28,129 @@
     </div>
     <div class="fg">
       <label>Barangay</label>
-      <input type="text" name="barangay" value="{{barangay}}" placeholder="e.g. Barangay 14, Olongapo City" required>
+      <input type="text" name="barangay" value="{{barangay}}" placeholder="e.g. Barangay 14, Castillejos" required>
     </div>
+
+    <!-- Location section -->
     <div class="fg">
       <label>📍 Your location (for map)</label>
-      <button type="button" id="loc-btn" class="btn btn-outline" onclick="getLocation()" style="font-size:14px;padding:12px;">
-        📍 Use my current location
-      </button>
-      <div id="loc-status" style="font-size:12px;color:var(--muted);margin-top:6px;"></div>
+      <div id="loc-box" style="background:var(--bg);border-radius:14px;padding:14px;border:1.5px solid var(--border);">
+        <div id="loc-status" style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;">
+          📡 Detecting your location automatically...
+        </div>
+        <!-- Mini map preview -->
+        <div id="mini-map" style="width:100%;height:160px;border-radius:12px;overflow:hidden;display:none;margin-bottom:10px;"></div>
+        <div style="display:flex;gap:8px;">
+          <button type="button" id="loc-btn" class="btn btn-outline" onclick="getLocation()" style="font-size:13px;padding:10px;flex:1;">
+            🔄 Retry location
+          </button>
+          <button type="button" id="manual-btn" class="btn btn-ghost" onclick="toggleManual()" style="font-size:13px;padding:10px;flex:1;">
+            ✏️ Enter manually
+          </button>
+        </div>
+        <!-- Manual coordinate entry -->
+        <div id="manual-box" style="display:none;margin-top:12px;">
+          <div style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:8px;">
+            Go to <a href="https://www.google.com/maps" target="_blank" style="color:var(--green);">Google Maps</a>, 
+            right-click your location → copy coordinates
+          </div>
+          <div style="display:flex;gap:8px;">
+            <input type="number" id="manual-lat" placeholder="Latitude (e.g. 14.9265)" step="0.0001" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:'Nunito',sans-serif;">
+            <input type="number" id="manual-lng" placeholder="Longitude (e.g. 120.2068)" step="0.0001" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:'Nunito',sans-serif;">
+          </div>
+          <button type="button" onclick="saveManual()" class="btn btn-outline" style="margin-top:8px;font-size:13px;padding:10px;">Save coordinates</button>
+        </div>
+      </div>
     </div>
+
     <button type="submit" class="btn btn-primary" style="margin-bottom:8px;">Submit request 🙌</button>
   </form>
 </div>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
-function selCat(btn,val){document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('cat-in').value=val;}
+let miniMap = null;
+let miniMarker = null;
+
+function selCat(btn,val){
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('cat-in').value=val;
+}
+
+function showMiniMap(lat, lng){
+  const mapDiv = document.getElementById('mini-map');
+  mapDiv.style.display = 'block';
+  if(!miniMap){
+    miniMap = L.map('mini-map', {zoomControl:false, attributionControl:false}).setView([lat,lng],15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(miniMap);
+  } else {
+    miniMap.setView([lat,lng],15);
+  }
+  if(miniMarker) miniMap.removeLayer(miniMarker);
+  miniMarker = L.marker([lat,lng]).addTo(miniMap).bindPopup('📍 Your location').openPopup();
+  // Fix map rendering after display:block
+  setTimeout(()=>miniMap.invalidateSize(),100);
+}
+
 function getLocation(){
-  const btn=document.getElementById('loc-btn');
-  const status=document.getElementById('loc-status');
-  btn.textContent='Getting location...';
-  btn.disabled=true;
+  const status = document.getElementById('loc-status');
+  const btn = document.getElementById('loc-btn');
+  status.style.color = 'var(--muted)';
+  status.textContent = '📡 Getting your location...';
+  btn.disabled = true;
+
+  if(!navigator.geolocation){
+    status.textContent = '❌ Location not supported. Use manual entry below.';
+    status.style.color = 'var(--red)';
+    btn.disabled = false;
+    return;
+  }
+
   navigator.geolocation.getCurrentPosition(
-    pos=>{
-      document.getElementById('lat-in').value=pos.coords.latitude;
-      document.getElementById('lng-in').value=pos.coords.longitude;
-      btn.textContent='✅ Location saved!';
-      btn.style.background='var(--gl)';
-      btn.style.color='var(--gd)';
-      status.textContent=`Lat: ${pos.coords.latitude.toFixed(5)}, Lng: ${pos.coords.longitude.toFixed(5)}`;
+    pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      document.getElementById('lat-in').value = lat;
+      document.getElementById('lng-in').value = lng;
+      status.textContent = `✅ Location detected! (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+      status.style.color = 'var(--green)';
+      btn.disabled = false;
+      btn.textContent = '🔄 Update location';
+      showMiniMap(lat, lng);
     },
-    ()=>{
-      btn.textContent='📍 Use my current location';
-      btn.disabled=false;
-      status.textContent='Could not get location. Allow location access and try again.';
-      status.style.color='var(--red)';
-    }
+    err => {
+      status.textContent = '❌ Could not detect location. Please allow location access or use manual entry.';
+      status.style.color = 'var(--red)';
+      btn.disabled = false;
+      document.getElementById('manual-box').style.display = 'block';
+    },
+    {enableHighAccuracy: true, timeout: 10000, maximumAge: 0}
   );
 }
+
+function toggleManual(){
+  const box = document.getElementById('manual-box');
+  box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+
+function saveManual(){
+  const lat = parseFloat(document.getElementById('manual-lat').value);
+  const lng = parseFloat(document.getElementById('manual-lng').value);
+  if(isNaN(lat) || isNaN(lng)){
+    alert('Please enter valid coordinates.');
+    return;
+  }
+  document.getElementById('lat-in').value = lat;
+  document.getElementById('lng-in').value = lng;
+  const status = document.getElementById('loc-status');
+  status.textContent = `✅ Manual location set! (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+  status.style.color = 'var(--green)';
+  showMiniMap(lat, lng);
+}
+
+// Auto-detect location on page load
+window.addEventListener('load', () => getLocation());
 </script>
 {% endblock %}
