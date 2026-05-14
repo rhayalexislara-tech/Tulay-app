@@ -370,7 +370,7 @@ function drawAll(){
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           <button onclick="navigateTo(${JSON.stringify(r).replace(/"/g,'&quot;')})" style="flex:1;min-width:80px;padding:9px;background:#E1F5EE;color:#0F6E56;border:none;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;font-family:'Nunito',sans-serif;">🗺 Navigate</button>
           {% if session.user_role=='volunteer' %}
-          <a href="/accept/${r.id}" onclick="return confirm('Accept this request?')" style="flex:1;min-width:80px;padding:9px;background:linear-gradient(135deg,#1D9E75,#0d7a5a);color:#fff;border-radius:8px;font-weight:800;font-size:12px;text-decoration:none;display:flex;align-items:center;justify-content:center;font-family:'Nunito',sans-serif;">✓ Accept</a>
+          <button onclick="acceptRequest(${r.id})" style="flex:1;min-width:80px;padding:9px;background:linear-gradient(135deg,#1D9E75,#0d7a5a);color:#fff;border-radius:8px;font-weight:800;font-size:12px;border:none;cursor:pointer;font-family:'Nunito',sans-serif;">✓ Accept</button>
           {% endif %}
         </div>
       </div>`,{maxWidth:250}).addTo(map);
@@ -411,7 +411,7 @@ function drawAll(){
         <button class="mbtn mb-view" onclick="focusMarker(${r.id})">📌 View</button>
         <button class="mbtn mb-nav" onclick='navigateTo(${rData})'>🗺 Navigate</button>
         {% if session.user_role=='volunteer' %}
-        <button class="mbtn mb-acc" onclick="location.href='/accept/${r.id}'">✓ Accept</button>
+        <button class="mbtn mb-acc" onclick="acceptRequest(${r.id})">✓ Accept</button>
         {% endif %}
       </div>
     </div>`;
@@ -433,5 +433,15 @@ fetch('/api/map-requests').then(r=>r.json()).then(data=>{
     },()=>{},{enableHighAccuracy:true});
   }
 });
+
+// Accept request via POST form (fixes Method Not Allowed error)
+function acceptRequest(id){
+  if(!confirm('Accept this request?')) return;
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/accept/' + id;
+  document.body.appendChild(form);
+  form.submit();
+}
 </script>
 {% endblock %}
