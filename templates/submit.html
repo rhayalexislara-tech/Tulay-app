@@ -1,0 +1,68 @@
+{% extends 'base.html' %}{% set active_page='submit' %}
+{% block topbar %}
+<div class="topbar-title">Ask for Help</div>
+<div style="width:38px;"></div>
+{% endblock %}
+{% block content %}
+<div class="page-content">
+  <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Fill out the form and nearby volunteers will be notified.</p>
+  <form method="POST" action="/submit">
+    <div class="sec">Type of help</div>
+    <div class="cat-grid">
+      <button type="button" class="cat-btn active" onclick="selCat(this,'Medical')"><span class="ci">🏥</span>Medical</button>
+      <button type="button" class="cat-btn" onclick="selCat(this,'Education')"><span class="ci">📚</span>Education</button>
+      <button type="button" class="cat-btn" onclick="selCat(this,'Daily Living')"><span class="ci">🛒</span>Daily Living</button>
+      <button type="button" class="cat-btn" onclick="selCat(this,'Technical')"><span class="ci">💻</span>Technical</button>
+    </div>
+    <input type="hidden" name="category" id="cat-in" value="Medical">
+    <input type="hidden" name="lat" id="lat-in">
+    <input type="hidden" name="lng" id="lng-in">
+    <div class="fg"><label>Title</label><input type="text" name="title" placeholder="e.g. Medication delivery for Lola" required></div>
+    <div class="fg"><label>Description</label><textarea name="description" placeholder="Give details so volunteers know how to help..." required></textarea></div>
+    <div class="fg"><label>Priority</label>
+      <select name="priority">
+        <option value="Urgent">🔴 Urgent — needs help today</option>
+        <option value="Medium" selected>🟡 Medium — within 2–3 days</option>
+        <option value="Normal">🟢 Normal — flexible schedule</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Barangay</label>
+      <input type="text" name="barangay" value="{{barangay}}" placeholder="e.g. Barangay 14, Olongapo City" required>
+    </div>
+    <div class="fg">
+      <label>📍 Your location (for map)</label>
+      <button type="button" id="loc-btn" class="btn btn-outline" onclick="getLocation()" style="font-size:14px;padding:12px;">
+        📍 Use my current location
+      </button>
+      <div id="loc-status" style="font-size:12px;color:var(--muted);margin-top:6px;"></div>
+    </div>
+    <button type="submit" class="btn btn-primary" style="margin-bottom:8px;">Submit request 🙌</button>
+  </form>
+</div>
+<script>
+function selCat(btn,val){document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('cat-in').value=val;}
+function getLocation(){
+  const btn=document.getElementById('loc-btn');
+  const status=document.getElementById('loc-status');
+  btn.textContent='Getting location...';
+  btn.disabled=true;
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      document.getElementById('lat-in').value=pos.coords.latitude;
+      document.getElementById('lng-in').value=pos.coords.longitude;
+      btn.textContent='✅ Location saved!';
+      btn.style.background='var(--gl)';
+      btn.style.color='var(--gd)';
+      status.textContent=`Lat: ${pos.coords.latitude.toFixed(5)}, Lng: ${pos.coords.longitude.toFixed(5)}`;
+    },
+    ()=>{
+      btn.textContent='📍 Use my current location';
+      btn.disabled=false;
+      status.textContent='Could not get location. Allow location access and try again.';
+      status.style.color='var(--red)';
+    }
+  );
+}
+</script>
+{% endblock %}

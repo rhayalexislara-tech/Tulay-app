@@ -1,0 +1,53 @@
+{% extends 'base.html' %}{% set active_page='dashboard' %}
+{% block content %}
+<div class="page-content">
+  {% if session.user_role=='volunteer' and unread > 0 %}
+  <div style="background:linear-gradient(135deg,#1D9E75,#0d7a5a);border-radius:16px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 16px rgba(29,158,117,0.35);">
+    <div style="font-size:28px;">🔔</div>
+    <div>
+      <div style="color:#fff;font-size:14px;font-weight:800;">{{unread}} new notification{{' s' if unread>1 else ''}}!</div>
+      <a href="/notifications" style="color:rgba(255,255,255,0.8);font-size:12px;font-weight:700;text-decoration:none;">Tap to view →</a>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="stats-grid">
+    <div class="stat-card" style="animation-delay:.0s"><div class="stat-label">Open requests</div><div class="stat-val sv-g">{{open_count}}</div></div>
+    <div class="stat-card" style="animation-delay:.05s"><div class="stat-label">Volunteers</div><div class="stat-val sv-b">{{vol_count}}</div></div>
+    <div class="stat-card" style="animation-delay:.1s"><div class="stat-label">Resolved</div><div class="stat-val sv-a">{{resolved}}</div></div>
+    <div class="stat-card" style="animation-delay:.15s"><div class="stat-label">Role</div><div class="stat-val" style="font-size:14px;font-weight:800;color:var(--green);padding-top:6px;">{{session.user_role.capitalize()}}</div></div>
+  </div>
+
+  <div class="sec">Recent requests</div>
+  {% for r in recent %}
+  <div class="card" style="animation-delay:{{0.2+loop.index0*0.06}}s;">
+    <div class="user-row">
+      <div class="mini-avatar">
+        {% if r['req_avatar'] %}<img src="{{r['req_avatar']}}" alt="">{% else %}{{r['requester'][0]}}{% endif %}
+      </div>
+      <div class="user-info">
+        <div class="user-name">{{r['requester']}}</div>
+        <div class="user-sub">📍 {{r['barangay']}}</div>
+      </div>
+      <div class="pills">
+        <span class="pill p-{{r['status']}}">{{r['status'].capitalize()}}</span>
+      </div>
+    </div>
+    <div class="pills">
+      <span class="pill p-{{r['category']|lower|replace(' ','')}}">{{r['category']}}</span>
+      <span class="pill p-{{r['priority']|lower}}">{{r['priority']}}</span>
+    </div>
+    <div class="req-title">{{r['title']}}</div>
+  </div>
+  {% else %}
+  <div class="empty">
+    <div style="font-size:48px;margin-bottom:12px;">🌟</div>
+    No requests yet.<br>Be the first to ask for help!
+  </div>
+  {% endfor %}
+  <div style="display:flex;gap:10px;margin-top:4px;">
+    <a href="/requests" class="btn btn-outline btn-sm" style="flex:1;">See all →</a>
+    {% if session.user_role=='resident' %}<a href="/submit" class="btn btn-primary btn-sm" style="flex:1;">+ Ask help</a>{% endif %}
+  </div>
+</div>
+{% endblock %}

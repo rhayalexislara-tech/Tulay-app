@@ -1,0 +1,437 @@
+{% extends 'base.html' %}{% set active_page='map' %}
+{% block topbar %}
+<div class="topbar-title">Nearby Requests</div>
+<a href="/notifications" class="icon-btn">🔔{% if unread>0 %}<div class="badge"></div>{% endif %}</a>
+{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+  .map-shell{display:flex;flex-direction:column;height:calc(100vh - 60px - 72px - env(safe-area-inset-top,44px) - env(safe-area-inset-bottom,34px));overflow:hidden;}
+  #map{width:100%;height:46vh;z-index:1;flex-shrink:0;}
+
+  /* Proximity banner */
+  .prox-banner{display:none;align-items:center;gap:10px;padding:10px 16px;font-size:13px;font-weight:700;flex-shrink:0;}
+  .prox-banner.near{background:#E1F5EE;color:#0F6E56;display:flex;}
+  .prox-banner.far{background:#FAEEDA;color:#BA7517;display:flex;}
+  .prox-banner.very-far{background:#FCEBEB;color:#A32D2D;display:flex;}
+  .prox-banner.arrived{background:linear-gradient(135deg,#1D9E75,#0d7a5a);color:#fff;display:flex;}
+
+  /* Nav card */
+  .nav-card{display:none;flex-shrink:0;background:#fff;border-top:2px solid #1D9E75;padding:12px 16px;}
+  .nav-card.active{display:block;}
+  .nav-dest{font-size:14px;font-weight:800;color:#1a1a1a;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .nav-meta{display:flex;gap:12px;font-size:13px;color:#6B6B6B;margin-bottom:10px;font-weight:700;}
+  .nav-actions{display:flex;gap:8px;}
+  .nav-btn{flex:1;padding:10px;border-radius:12px;border:none;font-size:13px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;}
+  .nav-btn-steps{background:#E6F1FB;color:#185FA5;}
+  .nav-btn-cancel{background:#FCEBEB;color:#A32D2D;}
+  .nav-btn-gmaps{background:linear-gradient(135deg,#4285F4,#1a73e8);color:#fff;}
+
+  /* Directions panel */
+  .dirs-panel{display:none;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#f0f4f2;}
+  .dirs-panel.active{display:block;}
+  .dirs-header{background:linear-gradient(135deg,#1D9E75,#0d7a5a);color:#fff;padding:13px 16px;font-size:14px;font-weight:800;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:1;}
+  .dir-step{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;background:#fff;border-bottom:.5px solid rgba(0,0,0,.07);}
+  .dir-num{width:28px;height:28px;background:#E1F5EE;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#0F6E56;flex-shrink:0;margin-top:1px;}
+  .dir-icon{font-size:16px;}
+  .dir-text{font-size:13px;color:#1a1a1a;line-height:1.5;font-weight:700;}
+  .dir-dist{font-size:11px;color:#6B6B6B;margin-top:2px;font-weight:600;}
+
+  /* Chips + legend */
+  .chips-bar{display:flex;gap:7px;overflow-x:auto;padding:9px 14px;background:#fff;border-bottom:.5px solid rgba(0,0,0,.08);flex-shrink:0;scrollbar-width:none;}
+  .chips-bar::-webkit-scrollbar{display:none;}
+  .chip{flex-shrink:0;padding:7px 13px;border-radius:99px;font-size:12px;font-weight:700;background:#f0f4f2;color:#6B6B6B;border:1px solid rgba(0,0,0,.1);cursor:pointer;white-space:nowrap;font-family:'Nunito',sans-serif;transition:all .15s;}
+  .chip.active{background:#1D9E75;color:#fff;border-color:#1D9E75;box-shadow:0 3px 10px rgba(29,158,117,0.3);}
+
+  /* Request list */
+  .req-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 14px 8px;background:#f0f4f2;}
+  .req-list::-webkit-scrollbar{display:none;}
+  .mcard{background:#fff;border-radius:16px;padding:13px 14px;margin-bottom:10px;border:.5px solid rgba(0,0,0,.08);box-shadow:0 2px 10px rgba(0,0,0,0.05);}
+  .mcard.is-near{border-color:#1D9E75;border-width:2px;}
+  .mcard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
+  .pills{display:flex;gap:5px;flex-wrap:wrap;}
+  .pill{font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;}
+  .p-medical{background:#FCEBEB;color:#A32D2D;}
+  .p-education{background:#E6F1FB;color:#185FA5;}
+  .p-dailyliving,.p-daily{background:#E1F5EE;color:#0F6E56;}
+  .p-technical{background:#EEEDFE;color:#534AB7;}
+  .p-urgent{background:#FCEBEB;color:#A32D2D;}
+  .p-medium{background:#FAEEDA;color:#BA7517;}
+  .p-normal{background:#E1F5EE;color:#0F6E56;}
+  .dtag{font-size:11px;font-weight:800;padding:3px 9px;border-radius:99px;}
+  .d-near{background:#E1F5EE;color:#0F6E56;}
+  .d-med{background:#FAEEDA;color:#BA7517;}
+  .d-far{background:#FCEBEB;color:#A32D2D;}
+  .mcard-user{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+  .m-avatar{width:28px;height:28px;border-radius:50%;background:#E1F5EE;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#0F6E56;overflow:hidden;flex-shrink:0;}
+  .m-avatar img{width:100%;height:100%;object-fit:cover;}
+  .mcard-title{font-size:14px;font-weight:800;color:#1a1a1a;margin-bottom:3px;}
+  .mcard-meta{font-size:12px;color:#AEAEB2;margin-bottom:10px;font-weight:600;}
+  .mcard-btns{display:flex;gap:7px;}
+  .mbtn{flex:1;padding:9px;border-radius:10px;border:none;font-size:12px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;}
+  .mb-view{background:#F2F2F7;color:#1a1a1a;}
+  .mb-nav{background:#E1F5EE;color:#0F6E56;}
+  .mb-acc{background:linear-gradient(135deg,#1D9E75,#0d7a5a);color:#fff;}
+  .mb-gmaps{background:#E6F1FB;color:#185FA5;}
+
+  /* Locate FAB */
+  .locate-fab{position:absolute;bottom:12px;right:12px;z-index:999;width:46px;height:46px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 16px rgba(0,0,0,.22);border:none;cursor:pointer;}
+  .empty-msg{text-align:center;padding:32px 16px;color:#6B6B6B;font-size:14px;line-height:1.8;font-weight:700;}
+
+  /* Route info overlay */
+  .route-eta{display:none;position:absolute;bottom:66px;left:12px;z-index:999;background:rgba(255,255,255,0.95);backdrop-filter:blur(10px);padding:10px 14px;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.15);font-family:'Nunito',sans-serif;}
+  .route-eta.active{display:block;}
+  .route-eta .km{font-size:18px;font-weight:900;color:#1D9E75;}
+  .route-eta .mins{font-size:12px;font-weight:700;color:#6B6B6B;}
+</style>
+
+<div class="map-shell">
+  <div style="position:relative;flex-shrink:0;">
+    <div id="map"></div>
+    <button class="locate-fab" onclick="locateMe()" title="Find my location">📍</button>
+    <div class="route-eta" id="route-eta">
+      <div class="km" id="eta-km">—</div>
+      <div class="mins" id="eta-mins">calculating...</div>
+    </div>
+  </div>
+
+  <div class="prox-banner" id="prox"></div>
+
+  <div class="nav-card" id="nav-card">
+    <div class="nav-dest" id="nav-dest"></div>
+    <div class="nav-meta">
+      <span id="nav-km">📏 —</span>
+      <span id="nav-time">🕐 —</span>
+    </div>
+    <div class="nav-actions">
+      <button class="nav-btn nav-btn-steps" onclick="showDirs()">📋 Directions</button>
+      <button class="nav-btn nav-btn-gmaps" onclick="openGoogleMaps()" id="gmaps-btn">🌐 Maps</button>
+      <button class="nav-btn nav-btn-cancel" onclick="cancelNav()">✕ Stop</button>
+    </div>
+  </div>
+
+  <div class="chips-bar" id="chips-bar">
+    <button class="chip active" onclick="setFilter('All',this)">All</button>
+    <button class="chip" onclick="setFilter('Medical',this)">🏥 Medical</button>
+    <button class="chip" onclick="setFilter('Education',this)">📚 Education</button>
+    <button class="chip" onclick="setFilter('Daily Living',this)">🛒 Daily</button>
+    <button class="chip" onclick="setFilter('Technical',this)">💻 Technical</button>
+    <button class="chip" onclick="setFilter('Urgent',this)">🔴 Urgent</button>
+    <button class="chip" onclick="setFilter('Nearby',this)">📍 Nearby</button>
+  </div>
+
+  <div class="dirs-panel" id="dirs-panel">
+    <div class="dirs-header">
+      <button onclick="hideDirs()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:5px 10px;border-radius:8px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;">← Back</button>
+      <span id="dirs-title">Directions</span>
+    </div>
+    <div id="dirs-steps"></div>
+  </div>
+
+  <div class="req-list" id="req-list">
+    <div class="empty-msg">Loading requests...</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let map, userMarker, routeLayer, markers=[], allReqs=[], activeFilter='All';
+let userLat=null, userLng=null, watchId=null, navReq=null, savedSteps=[];
+
+// ── Map init ───────────────────────────────────────────────────────────────
+map = L.map('map',{zoomControl:false,attributionControl:false}).setView([14.828,120.281],14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+L.control.attribution({prefix:false,position:'bottomleft'}).addTo(map);
+L.control.zoom({position:'topright'}).addTo(map);
+
+// ── Math helpers ───────────────────────────────────────────────────────────
+function hav(la1,lo1,la2,lo2){
+  const R=6371,dLa=(la2-la1)*Math.PI/180,dLo=(lo2-lo1)*Math.PI/180;
+  const a=Math.sin(dLa/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLo/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function fmtDist(km){return km<1?Math.round(km*1000)+' m':km.toFixed(2)+' km';}
+function fmtTime(km){const m=Math.round(km/0.5*60/60*5);return '~'+(m<60?m+' min':(Math.floor(m/60)+'h '+(m%60)+'m'));}
+
+// Maneuver icon helper
+function maneuverIcon(type){
+  const icons={turn:'↩',straight:'↑','turn-left':'←','turn-right':'→','turn-slight-left':'↖','turn-slight-right':'↗','turn-sharp-left':'⬅','turn-sharp-right':'➡',uturn:'↩',roundabout:'🔄',arrive:'🏁',depart:'🚀',fork:'⑂'};
+  if(!type) return '↑';
+  for(const k in icons) if(type.includes(k)) return icons[k];
+  return '↑';
+}
+
+// ── Marker icons ───────────────────────────────────────────────────────────
+function makeMarkerIcon(cat,priority,near){
+  const colors={Medical:'#E24B4A',Education:'#185FA5','Daily Living':'#1D9E75',Technical:'#534AB7'};
+  const c=priority==='Urgent'?'#E24B4A':(colors[cat]||'#1D9E75');
+  const sz=near?38:32;
+  return L.divIcon({
+    html:`<div style="position:relative;width:${sz}px;height:${sz+8}px;">
+      <div style="width:${sz}px;height:${sz}px;background:${c};border:3px solid #fff;border-radius:50%;box-shadow:0 3px 14px ${c}88;display:flex;align-items:center;justify-content:center;font-size:${sz/2.2}px;">
+        ${({'Medical':'🏥','Education':'📚','Daily Living':'🛒','Technical':'💻'})[cat]||'📌'}
+      </div>
+      <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:8px solid ${c};"></div>
+    </div>`,
+    iconSize:[sz,sz+8],iconAnchor:[sz/2,sz+8],popupAnchor:[0,-(sz+8)],className:''
+  });
+}
+function meIcon(){
+  return L.divIcon({
+    html:`<div style="position:relative;">
+      <div style="width:22px;height:22px;background:#1D9E75;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 12px rgba(29,158,117,.7);">
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:8px;background:#fff;border-radius:50%;"></div>
+      </div>
+      <div style="position:absolute;top:-2px;left:-2px;width:26px;height:26px;border:2px solid rgba(29,158,117,0.4);border-radius:50%;animation:ping 1.5s infinite;"></div>
+    </div>
+    <style>@keyframes ping{0%{transform:scale(1);opacity:1;}100%{transform:scale(2);opacity:0;}}</style>`,
+    iconSize:[22,22],iconAnchor:[11,11],className:''
+  });
+}
+
+// ── Navigate to a request ──────────────────────────────────────────────────
+async function navigateTo(r){
+  if(!userLat){
+    alert('Please enable your location first by tapping 📍');
+    return;
+  }
+  navReq=r;
+
+  // Clear old route
+  if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
+
+  // Try OSRM routing (fastest route)
+  try{
+    const url=`https://router.project-osrm.org/route/v1/driving/${userLng},${userLat};${r.lng},${r.lat}?overview=full&geometries=geojson&steps=true`;
+    const res=await fetch(url);
+    const data=await res.json();
+
+    if(data.code==='Ok'&&data.routes&&data.routes[0]){
+      const route=data.routes[0];
+      // Draw animated route
+      routeLayer=L.geoJSON(route.geometry,{
+        style:{color:'#1D9E75',weight:6,opacity:0.9,lineCap:'round',lineJoin:'round'}
+      }).addTo(map);
+
+      // Fit bounds with padding
+      const coords=route.geometry.coordinates.map(c=>[c[1],c[0]]);
+      map.fitBounds(L.latLngBounds(coords),{padding:[60,40]});
+
+      const km=route.distance/1000;
+      const mins=Math.round(route.duration/60);
+      document.getElementById('nav-km').textContent=`📏 ${km.toFixed(2)} km`;
+      document.getElementById('nav-time').textContent=`🕐 ~${mins} min`;
+      document.getElementById('eta-km').textContent=km.toFixed(2)+' km';
+      document.getElementById('eta-mins').textContent=`~${mins} min away`;
+      document.getElementById('route-eta').classList.add('active');
+
+      savedSteps=route.legs[0]?.steps||[];
+    } else { throw new Error('no route'); }
+  } catch(e){
+    // Fallback: draw straight dashed line
+    if(routeLayer) map.removeLayer(routeLayer);
+    routeLayer=L.polyline([[userLat,userLng],[r.lat,r.lng]],{
+      color:'#1D9E75',weight:5,dashArray:'12 8',lineCap:'round'
+    }).addTo(map);
+    map.fitBounds([[userLat,userLng],[r.lat,r.lng]],{padding:[60,40]});
+    const km=hav(userLat,userLng,r.lat,r.lng);
+    document.getElementById('nav-km').textContent=`📏 ${km.toFixed(2)} km`;
+    document.getElementById('nav-time').textContent=fmtTime(km);
+    document.getElementById('eta-km').textContent=km.toFixed(2)+' km';
+    document.getElementById('eta-mins').textContent=fmtTime(km)+' away (approx.)';
+    document.getElementById('route-eta').classList.add('active');
+    savedSteps=[];
+  }
+
+  document.getElementById('nav-dest').textContent='📍 '+r.title;
+  document.getElementById('nav-card').classList.add('active');
+  document.getElementById('chips-bar').style.display='none';
+  document.getElementById('req-list').style.display='none';
+  updateProximity(hav(userLat,userLng,r.lat,r.lng));
+  startWatch(r);
+}
+
+function openGoogleMaps(){
+  if(!navReq) return;
+  const url=`https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}&destination=${navReq.lat},${navReq.lng}&travelmode=driving`;
+  window.open(url,'_blank');
+}
+
+function startWatch(r){
+  if(watchId) navigator.geolocation.clearWatch(watchId);
+  watchId=navigator.geolocation.watchPosition(pos=>{
+    userLat=pos.coords.latitude; userLng=pos.coords.longitude;
+    if(userMarker) userMarker.setLatLng([userLat,userLng]);
+    const km=hav(userLat,userLng,r.lat,r.lng);
+    document.getElementById('nav-km').textContent=`📏 ${fmtDist(km)}`;
+    document.getElementById('eta-km').textContent=fmtDist(km);
+    updateProximity(km);
+  },{enableHighAccuracy:true,maximumAge:2000,timeout:8000});
+}
+
+function updateProximity(km){
+  const el=document.getElementById('prox');
+  el.className='prox-banner';
+  if(km<0.05){
+    el.className='prox-banner arrived';
+    el.innerHTML='🎉 You have ARRIVED at the destination!';
+  } else if(km<0.3){
+    el.className='prox-banner near';
+    el.innerHTML=`🟢 Very close! Only <b>${Math.round(km*1000)} meters</b> away`;
+  } else if(km<1){
+    el.className='prox-banner near';
+    el.innerHTML=`📍 Nearby — <b>${Math.round(km*1000)} m</b> away`;
+  } else if(km<3){
+    el.className='prox-banner far';
+    el.innerHTML=`🟡 <b>${km.toFixed(1)} km</b> away — keep going!`;
+  } else {
+    el.className='prox-banner very-far';
+    el.innerHTML=`🔴 Far — <b>${km.toFixed(1)} km</b> away`;
+  }
+}
+
+function showDirs(){
+  document.getElementById('dirs-title').textContent=navReq?'To: '+navReq.title:'Directions';
+  if(!savedSteps.length){
+    document.getElementById('dirs-steps').innerHTML=`<div class="dir-step"><div class="dir-text" style="color:#6B6B6B;">No detailed steps available.<br>Follow the green route on the map.</div></div>`;
+  } else {
+    document.getElementById('dirs-steps').innerHTML=savedSteps.map((s,i)=>{
+      const maneuver=s.maneuver||{};
+      const icon=maneuverIcon(maneuver.type);
+      const dist=s.distance>0?fmtDist(s.distance/1000):'';
+      const dur=s.duration>0?'~'+Math.round(s.duration/60)+' min':'';
+      const instr=maneuver.instruction||(s.name?'Continue on '+s.name:'Continue forward');
+      return `<div class="dir-step">
+        <div class="dir-num">${icon}</div>
+        <div>
+          <div class="dir-text">${instr}</div>
+          <div class="dir-dist">${[dist,dur].filter(Boolean).join(' · ')}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('dirs-panel').classList.add('active');
+}
+function hideDirs(){document.getElementById('dirs-panel').classList.remove('active');}
+
+function cancelNav(){
+  if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
+  if(watchId){navigator.geolocation.clearWatch(watchId);watchId=null;}
+  navReq=null; savedSteps=[];
+  document.getElementById('nav-card').classList.remove('active');
+  document.getElementById('prox').className='prox-banner';
+  document.getElementById('route-eta').classList.remove('active');
+  document.getElementById('chips-bar').style.display='';
+  document.getElementById('req-list').style.display='';
+  drawAll();
+}
+
+function locateMe(){
+  navigator.geolocation.getCurrentPosition(pos=>{
+    userLat=pos.coords.latitude; userLng=pos.coords.longitude;
+    if(userMarker) map.removeLayer(userMarker);
+    userMarker=L.marker([userLat,userLng],{icon:meIcon()})
+      .bindPopup('<b>📍 You are here</b>').addTo(map);
+    map.flyTo([userLat,userLng],16,{duration:1});
+    drawAll();
+  },()=>alert('Enable location in your browser settings.'),{enableHighAccuracy:true});
+}
+
+function setFilter(f,btn){
+  activeFilter=f;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  drawAll();
+}
+
+function focusMarker(id){
+  const r=allReqs.find(x=>x.id===id);
+  if(r&&r.lat){map.flyTo([r.lat,r.lng],17,{duration:0.8});}
+}
+
+function drawAll(){
+  markers.forEach(m=>map.removeLayer(m)); markers=[];
+  let reqs=allReqs.map(r=>({...r,_km:r.lat&&userLat?hav(userLat,userLng,r.lat,r.lng):null}));
+  if(activeFilter==='Urgent') reqs=reqs.filter(r=>r.priority==='Urgent');
+  else if(activeFilter==='Nearby') reqs=reqs.filter(r=>r._km!==null&&r._km<2);
+  else if(activeFilter!=='All') reqs=reqs.filter(r=>r.category===activeFilter);
+  if(userLat) reqs.sort((a,b)=>(a._km??999)-(b._km??999));
+
+  reqs.forEach(r=>{
+    if(!r.lat||!r.lng) return;
+    const near=r._km!==null&&r._km<0.5;
+    const kmTxt=r._km!==null?fmtDist(r._km):'';
+    const m=L.marker([r.lat,r.lng],{icon:makeMarkerIcon(r.category,r.priority,near)})
+      .bindPopup(`<div style="font-family:'Nunito',sans-serif;min-width:200px;padding:2px;">
+        <div style="font-weight:800;font-size:14px;margin-bottom:4px;">${r.title}</div>
+        <div style="font-size:12px;color:#888;margin-bottom:6px;">📍 ${r.barangay}${kmTxt?' · '+kmTxt:''}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button onclick="navigateTo(${JSON.stringify(r).replace(/"/g,'&quot;')})" style="flex:1;min-width:80px;padding:9px;background:#E1F5EE;color:#0F6E56;border:none;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;font-family:'Nunito',sans-serif;">🗺 Navigate</button>
+          {% if session.user_role=='volunteer' %}
+          <a href="/accept/${r.id}" onclick="return confirm('Accept this request?')" style="flex:1;min-width:80px;padding:9px;background:linear-gradient(135deg,#1D9E75,#0d7a5a);color:#fff;border-radius:8px;font-weight:800;font-size:12px;text-decoration:none;display:flex;align-items:center;justify-content:center;font-family:'Nunito',sans-serif;">✓ Accept</a>
+          {% endif %}
+        </div>
+      </div>`,{maxWidth:250}).addTo(map);
+    markers.push(m);
+  });
+
+  const list=document.getElementById('req-list');
+  if(!reqs.length){
+    list.innerHTML='<div class="empty-msg">🔍 No requests found.<br>Try a different filter!</div>';
+    return;
+  }
+  list.innerHTML=reqs.map(r=>{
+    const km=r._km;
+    const dc=km===null?'':km<0.5?'d-near':km<2?'d-med':'d-far';
+    const di=km===null?'':km<0.5?'🟢':km<2?'🟡':'🔴';
+    const rData=JSON.stringify(r);
+    const avatarHtml=r.req_avatar
+      ?`<div class="m-avatar"><img src="${r.req_avatar}" alt=""></div>`
+      :`<div class="m-avatar">${(r.requester||'?')[0]}</div>`;
+    return `<div class="mcard${km!==null&&km<0.5?' is-near':''}">
+      <div class="mcard-user">
+        ${avatarHtml}
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:800;color:#1a1a1a;">${r.requester||'—'}</div>
+          <div style="font-size:11px;color:#AEAEB2;font-weight:600;">📍 ${r.barangay}</div>
+        </div>
+        ${km!==null?`<span class="dtag ${dc}">${di} ${fmtDist(km)}</span>`:''}
+      </div>
+      <div class="mcard-top">
+        <div class="pills">
+          <span class="pill p-${r.category.toLowerCase().replace(/ /g,'')}">${r.category}</span>
+          <span class="pill p-${r.priority.toLowerCase()}">${r.priority}</span>
+        </div>
+      </div>
+      <div class="mcard-title">${r.title}</div>
+      <div class="mcard-meta">${km!==null?`⏱ ${fmtTime(km)}`:''}</div>
+      <div class="mcard-btns">
+        <button class="mbtn mb-view" onclick="focusMarker(${r.id})">📌 View</button>
+        <button class="mbtn mb-nav" onclick='navigateTo(${rData})'>🗺 Navigate</button>
+        {% if session.user_role=='volunteer' %}
+        <button class="mbtn mb-acc" onclick="location.href='/accept/${r.id}'">✓ Accept</button>
+        {% endif %}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Load data + auto-locate ────────────────────────────────────────────────
+fetch('/api/map-requests').then(r=>r.json()).then(data=>{
+  allReqs=data;
+  drawAll();
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(pos=>{
+      userLat=pos.coords.latitude; userLng=pos.coords.longitude;
+      if(userMarker) map.removeLayer(userMarker);
+      userMarker=L.marker([userLat,userLng],{icon:meIcon()})
+        .bindPopup('<b>📍 You are here</b>').addTo(map);
+      map.flyTo([userLat,userLng],15,{duration:1});
+      drawAll();
+    },()=>{},{enableHighAccuracy:true});
+  }
+});
+</script>
+{% endblock %}

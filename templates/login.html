@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>TULAY – Log In</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Nunito',-apple-system,sans-serif;max-width:430px;margin:0 auto;height:100%;display:flex;flex-direction:column;background:#0a1628;}
+
+/* ── ANIMATED BACKGROUND ── */
+.bg-canvas{position:fixed;inset:0;z-index:0;overflow:hidden;background:linear-gradient(135deg,#0a1628 0%,#0d2040 40%,#0f2d1a 100%);}
+.orb{position:absolute;border-radius:50%;filter:blur(60px);opacity:0.55;animation:float 8s ease-in-out infinite;}
+.orb1{width:320px;height:320px;background:radial-gradient(circle,#1D9E75,transparent);top:-80px;left:-60px;}
+.orb2{width:260px;height:260px;background:radial-gradient(circle,#0d5e3f,transparent);bottom:80px;right:-80px;animation-delay:-3s;}
+.orb3{width:180px;height:180px;background:radial-gradient(circle,#185FA5,transparent);top:42%;left:58%;animation-delay:-5s;}
+.orb4{width:130px;height:130px;background:radial-gradient(circle,#34c997,transparent);bottom:220px;left:18%;animation-delay:-2s;}
+@keyframes float{0%,100%{transform:translateY(0) scale(1);}50%{transform:translateY(-28px) scale(1.06);}}
+.grid-lines{position:absolute;inset:0;background-image:linear-gradient(rgba(29,158,117,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(29,158,117,0.06) 1px,transparent 1px);background-size:40px 40px;}
+.particles{position:absolute;inset:0;}
+.particle{position:absolute;border-radius:50%;animation:rise linear infinite;}
+@keyframes rise{0%{transform:translateY(100vh) scale(0);opacity:0;}10%{opacity:1;}90%{opacity:0.4;}100%{transform:translateY(-10vh) scale(1);opacity:0;}}
+
+/* ── CONTENT ── */
+.login-wrap{position:relative;z-index:10;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 36px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.logo-area{text-align:center;margin-bottom:24px;animation:fadeUp 0.6s ease both;}
+.logo-img{height:70px;width:auto;display:block;margin:0 auto 10px;filter:drop-shadow(0 4px 24px rgba(29,158,117,0.55));}
+.logo-title{font-size:38px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1;}
+.logo-sub{font-size:13px;color:rgba(255,255,255,0.5);font-weight:700;margin-top:5px;letter-spacing:1px;text-transform:uppercase;}
+
+/* Card */
+.card{background:rgba(255,255,255,0.07);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border-radius:28px;padding:26px 22px;width:100%;border:1px solid rgba(255,255,255,0.11);box-shadow:0 24px 64px rgba(0,0,0,0.45);animation:fadeUp 0.6s 0.12s ease both;}
+.flash{padding:12px 14px;border-radius:13px;font-size:14px;margin-bottom:16px;font-weight:700;}
+.flash.success{background:rgba(29,158,117,0.18);color:#6ee7b7;border:1px solid rgba(29,158,117,0.3);}
+.flash.error{background:rgba(220,53,69,0.18);color:#fca5a5;border:1px solid rgba(220,53,69,0.3);}
+.card-title{font-size:22px;font-weight:900;color:#fff;margin-bottom:3px;}
+.card-sub{font-size:14px;color:rgba(255,255,255,0.45);font-weight:600;margin-bottom:20px;}
+
+/* Inputs */
+.fg{margin-bottom:14px;}
+.fg label{font-size:10px;font-weight:900;color:rgba(255,255,255,0.45);display:block;margin-bottom:7px;text-transform:uppercase;letter-spacing:.1em;}
+.fg input{width:100%;padding:14px 16px;border:1.5px solid rgba(255,255,255,0.13);border-radius:14px;font-size:16px;font-family:'Nunito',sans-serif;color:#fff;background:rgba(255,255,255,0.08);-webkit-appearance:none;transition:border-color .2s,background .2s;}
+.fg input::placeholder{color:rgba(255,255,255,0.25);}
+.fg input:focus{outline:none;border-color:rgba(29,158,117,0.8);background:rgba(255,255,255,0.11);}
+
+/* Buttons */
+.btn-login{width:100%;padding:15px;background:linear-gradient(135deg,#1D9E75,#0d7a5a);color:#fff;border:none;border-radius:16px;font-size:16px;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;margin-top:4px;box-shadow:0 6px 24px rgba(29,158,117,0.45);transition:transform .15s;}
+.btn-login:active{transform:scale(0.97);}
+
+.divider{display:flex;align-items:center;gap:10px;margin:18px 0 16px;color:rgba(255,255,255,0.2);font-size:12px;font-weight:700;letter-spacing:.05em;}
+.divider::before,.divider::after{content:'';flex:1;height:.5px;background:rgba(255,255,255,0.1);}
+
+/* Social buttons */
+.social-btns{display:flex;flex-direction:column;gap:10px;}
+.btn-social{width:100%;padding:14px 16px;border:none;border-radius:16px;font-size:15px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;transition:transform .15s,filter .15s;text-decoration:none;}
+.btn-social:active{transform:scale(0.97);}
+.btn-google{background:#fff;color:#1a1a1a;}
+.btn-google:hover{filter:brightness(0.96);}
+
+.social-icon{width:22px;height:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+
+.link-row{text-align:center;margin-top:18px;animation:fadeUp 0.6s 0.28s ease both;}
+.link-row a{color:rgba(255,255,255,0.55);font-size:14px;font-weight:700;text-decoration:none;}
+.link-row a strong{color:#6ee7b7;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+<div class="bg-canvas">
+  <div class="grid-lines"></div>
+  <div class="orb orb1"></div><div class="orb orb2"></div>
+  <div class="orb orb3"></div><div class="orb orb4"></div>
+  <div class="particles" id="parts"></div>
+</div>
+
+<div class="login-wrap">
+  {% with messages=get_flashed_messages(with_categories=true) %}
+    {% for cat,msg in messages %}<div class="flash {{cat}}" style="width:100%;margin-bottom:12px;">{{msg}}</div>{% endfor %}
+  {% endwith %}
+
+  <div class="logo-area">
+    <img src="/static/bridge_logo.png" alt="TULAY" class="logo-img">
+    <div class="logo-title">TULAY</div>
+    <div class="logo-sub">Community Help &amp; Volunteer System</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Welcome back! 👋</div>
+    <div class="card-sub">Sign in to your TULAY account</div>
+
+    <!-- Social login -->
+    <div class="social-btns">
+      <a href="/login/google" class="btn-social btn-google">
+        <svg class="social-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continue with Google
+      </a>
+    </div>
+
+    <div class="divider">or sign in with email</div>
+
+    <form method="POST" action="/login">
+      <div class="fg"><label>Email</label><input type="email" name="email" placeholder="you@email.com" autocomplete="email" required></div>
+      <div class="fg"><label>Password</label><input type="password" name="password" placeholder="Enter your password" autocomplete="current-password" required></div>
+      <button type="submit" class="btn-login">Log in →</button>
+    </form>
+  </div>
+
+  <div class="link-row">
+    Don't have an account? <a href="/register"><strong>Create one →</strong></a>
+  </div>
+</div>
+
+<script>
+const parts=document.getElementById('parts');
+for(let i=0;i<20;i++){
+  const p=document.createElement('div');
+  p.className='particle';
+  p.style.cssText=`left:${Math.random()*100}%;width:${2+Math.random()*4}px;height:${2+Math.random()*4}px;background:rgba(29,158,117,${0.3+Math.random()*0.5});animation-duration:${7+Math.random()*10}s;animation-delay:${-Math.random()*12}s;`;
+  parts.appendChild(p);
+}
+</script>
+</body>
+</html>

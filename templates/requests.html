@@ -1,0 +1,53 @@
+{% extends 'base.html' %}{% set active_page='requests' %}
+{% block topbar %}
+<div class="topbar-title">Help Requests</div>
+<a href="/notifications" class="icon-btn">🔔{% if unread>0 %}<div class="badge"></div>{% endif %}</a>
+{% endblock %}
+{% block content %}
+<div class="page-content" style="padding-top:10px;">
+  <div class="chips">
+    <button class="chip {{'active' if selected=='All' and priority=='All'}}" onclick="location.href='/requests'">All</button>
+    <button class="chip {{'active' if selected=='Medical'}}" onclick="location.href='/requests?category=Medical'">🏥 Medical</button>
+    <button class="chip {{'active' if selected=='Education'}}" onclick="location.href='/requests?category=Education'">📚 Education</button>
+    <button class="chip {{'active' if selected=='Daily Living'}}" onclick="location.href='/requests?category=Daily Living'">🛒 Daily</button>
+    <button class="chip {{'active' if selected=='Technical'}}" onclick="location.href='/requests?category=Technical'">💻 Technical</button>
+    <button class="chip {{'active' if priority=='Urgent'}}" onclick="location.href='/requests?priority=Urgent'">🔴 Urgent</button>
+    <button class="chip {{'active' if priority=='Medium'}}" onclick="location.href='/requests?priority=Medium'">🟡 Medium</button>
+  </div>
+  {% for r in requests %}
+  <div class="card" style="animation-delay:{{loop.index0*0.05}}s;">
+    <div class="user-row">
+      <div class="mini-avatar">
+        {% if r['req_avatar'] %}<img src="{{r['req_avatar']}}" alt="">{% else %}{{r['requester'][0]}}{% endif %}
+      </div>
+      <div class="user-info">
+        <div class="user-name">{{r['requester']}}</div>
+        <div class="user-sub">📍 {{r['barangay']}}</div>
+      </div>
+    </div>
+    <div class="pills">
+      <span class="pill p-{{r['category']|lower|replace(' ','')}}">{{r['category']}}</span>
+      <span class="pill p-{{r['priority']|lower}}">{{r['priority']}}</span>
+    </div>
+    <div class="req-title">{{r['title']}}</div>
+    <div class="req-desc">{{r['description']}}</div>
+    <div class="req-meta">🕐 {{r['created_at'][:10]}}</div>
+    {% if session.user_role=='volunteer' %}
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      {% if r['lat'] and r['lng'] %}
+      <a href="/map" class="btn btn-outline btn-sm" style="flex:1;">🗺️ View on map</a>
+      {% endif %}
+      <form method="POST" action="/accept/{{r['id']}}" style="flex:2;">
+        <button type="submit" class="btn btn-primary" style="padding:10px;">✓ Accept request</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty">
+    <div style="font-size:48px;margin-bottom:12px;">🎉</div>
+    No open requests right now!
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

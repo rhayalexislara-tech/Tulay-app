@@ -1,0 +1,100 @@
+{% extends 'base.html' %}{% set active_page='my_requests' %}
+{% block topbar %}
+<div class="topbar-title">{% if session.user_role=='resident' %}My Requests{% else %}My Tasks{% endif %}</div>
+<a href="/notifications" class="icon-btn">🔔{% if unread>0 %}<div class="badge"></div>{% endif %}</a>
+{% endblock %}
+{% block content %}
+<div class="page-content">
+{% for r in requests %}
+<div class="card" style="animation-delay:{{loop.index0*0.05}}s;">
+  <!-- Volunteer/Requester info -->
+  {% if session.user_role=='resident' and r['vol_name'] %}
+  <div class="user-row" style="margin-bottom:10px;">
+    <div class="mini-avatar">
+      {% if r['vol_avatar'] %}<img src="{{r['vol_avatar']}}" alt="">{% else %}{{r['vol_name'][0]}}{% endif %}
+    </div>
+    <div class="user-info">
+      <div class="user-name">{{r['vol_name']}}</div>
+      <div class="user-sub">Volunteer helping you 🤝</div>
+    </div>
+  </div>
+  {% elif session.user_role=='volunteer' and r['requester'] %}
+  <div class="user-row" style="margin-bottom:10px;">
+    <div class="mini-avatar">
+      {% if r['req_avatar'] %}<img src="{{r['req_avatar']}}" alt="">{% else %}{{r['requester'][0]}}{% endif %}
+    </div>
+    <div class="user-info">
+      <div class="user-name">{{r['requester']}}</div>
+      <div class="user-sub">Needs your help 🙏</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="pills">
+    <span class="pill p-{{r['category']|lower|replace(' ','')}}">{{r['category']}}</span>
+    <span class="pill p-{{r['priority']|lower}}">{{r['priority']}}</span>
+    <span class="pill p-{{r['status']}}">{{r['status'].capitalize()}}</span>
+  </div>
+  <div class="req-title">{{r['title']}}</div>
+  <div class="req-desc">{{r['description']}}</div>
+
+  <div class="prog">
+    <div class="ps {{'done' if r['status'] in ['open','accepted','completed']}}">📝 Submitted</div>
+    <div class="pl {{'done' if r['status'] in ['accepted','completed']}}"></div>
+    <div class="ps {{'done' if r['status']=='completed' else 'cur' if r['status']=='accepted'}}">🤝 Accepted</div>
+    <div class="pl {{'done' if r['status']=='completed'}}"></div>
+    <div class="ps {{'done' if r['status']=='completed'}}">✅ Done</div>
+  </div>
+
+  <div class="req-meta" style="margin-top:6px;">
+    <span>📍 {{r['barangay']}}</span>
+    <span>🕐 {{r['created_at'][:10]}}</span>
+  </div>
+
+  {% if session.user_role=='resident' and r['status']=='accepted' %}
+  <form method="POST" action="/complete/{{r['id']}}" style="margin-top:12px;">
+    <button type="submit" class="btn btn-amber">✅ Mark as completed</button>
+  </form>
+  {% endif %}
+
+  <!-- Navigate button for volunteers with lat/lng -->
+  {% if session.user_role=='volunteer' and r['status']=='accepted' %}
+  <div style="margin-top:12px;">
+    <a href="/map" class="btn btn-outline">🗺️ Navigate to this request</a>
+  </div>
+  {% endif %}
+
+  {% if session.user_role=='resident' and r['status']=='completed' and r['volunteer_rating'] is none %}
+  <details style="margin-top:12px;">
+    <summary class="btn btn-outline" style="cursor:pointer;list-style:none;width:100%;justify-content:center;">⭐ Rate the volunteer</summary>
+    <div style="background:var(--bg);border-radius:14px;padding:14px;margin-top:10px;">
+      <form method="POST" action="/rate/{{r['id']}}">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;font-weight:700;">Your rating</div>
+        <div class="stars" id="stars-{{r['id']}}">
+          {% for i in range(1,6) %}<span class="star lit" onclick="setRating({{r['id']}},{{i}})">★</span>{% endfor %}
+        </div>
+        <input type="hidden" name="rating" id="rating-{{r['id']}}" value="5">
+        <div class="fg" style="margin-top:8px;"><label>Comment (optional)</label><textarea name="feedback" placeholder="How was the volunteer's help?"></textarea></div>
+        <button type="submit" class="btn btn-primary">Submit rating</button>
+      </form>
+    </div>
+  </details>
+  {% elif session.user_role=='resident' and r['status']=='completed' and r['volunteer_rating'] %}
+  <div style="margin-top:10px;font-size:13px;color:var(--gd);font-weight:700;">⭐ You rated: {{r['volunteer_rating']}}/5</div>
+  {% endif %}
+</div>
+{% else %}
+<div class="empty">
+  <div style="font-size:48px;margin-bottom:12px;">📌</div>
+  {% if session.user_role=='resident' %}No requests yet.<br><br><a href="/submit" class="btn btn-primary" style="display:inline-flex;">+ Ask for help</a>
+  {% else %}No accepted tasks yet.<br><br><a href="/requests" class="btn btn-primary" style="display:inline-flex;">Browse requests</a>{% endif %}
+</div>
+{% endfor %}
+</div>
+<script>
+function setRating(id,val){
+  document.getElementById('rating-'+id).value=val;
+  document.querySelectorAll('#stars-'+id+' .star').forEach((s,i)=>s.classList.toggle('lit',i<val));
+}
+</script>
+{% endblock %}

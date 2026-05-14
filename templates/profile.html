@@ -1,0 +1,84 @@
+{% extends 'base.html' %}{% set active_page='profile' %}
+{% block topbar %}
+<div class="topbar-title">My Profile</div>
+<a href="/logout" style="font-size:13px;font-weight:800;color:rgba(255,255,255,0.85);text-decoration:none;padding:7px 14px;background:rgba(255,255,255,0.15);border-radius:10px;">Log out</a>
+{% endblock %}
+{% block content %}
+<div class="page-content">
+  <div class="card" style="text-align:center;margin-bottom:12px;">
+    <div class="avatar-lg">
+      {% if user['avatar'] %}<img src="{{user['avatar']}}" alt="{{user['name']}}">{% else %}{{user['name'][0]}}{% endif %}
+    </div>
+    <div class="prof-name">{{user['name']}}</div>
+    <div class="prof-email">{{user['email']}}</div>
+    <span class="role-badge" style="{% if user['role']=='resident' %}background:var(--bl);color:var(--blue);{% else %}background:var(--gl);color:var(--gd);{% endif %}margin-top:8px;display:inline-block;">
+      {{user['role'].capitalize()}}
+    </span>
+    {% if session.user_role=='volunteer' %}
+    <div style="margin-top:16px;padding:14px;background:linear-gradient(135deg,var(--green),#0d7a5a);border-radius:14px;color:#fff;">
+      <div style="font-size:32px;font-weight:900;">{{user['points']}}</div>
+      <div style="font-size:13px;font-weight:700;opacity:0.85;">Volunteer Points 🏅</div>
+    </div>
+    {% endif %}
+    {% if user['bio'] %}
+    <div style="margin-top:12px;font-size:14px;color:var(--muted);font-weight:600;line-height:1.5;">{{user['bio']}}</div>
+    {% endif %}
+  </div>
+
+  <div class="stats-grid">
+    {% if session.user_role=='volunteer' %}
+    <div class="stat-card"><div class="stat-label">Completed</div><div class="stat-val sv-g">{{stats.completed}}</div></div>
+    <div class="stat-card"><div class="stat-label">In Progress</div><div class="stat-val sv-a">{{stats.accepted}}</div></div>
+    <div class="stat-card" style="grid-column:1/-1;"><div class="stat-label">Average Rating</div><div class="stat-val sv-b">{{stats.avg_rating or '—'}} ⭐</div></div>
+    {% else %}
+    <div class="stat-card"><div class="stat-label">Submitted</div><div class="stat-val sv-b">{{stats.submitted}}</div></div>
+    <div class="stat-card"><div class="stat-label">Completed</div><div class="stat-val sv-g">{{stats.completed}}</div></div>
+    {% endif %}
+  </div>
+
+  <div class="sec">Edit profile</div>
+  <div class="card">
+    <form method="POST" action="/profile/edit" enctype="multipart/form-data">
+      <!-- Photo upload -->
+      <div class="fg">
+        <label>Profile Photo</label>
+        <div style="display:flex;align-items:center;gap:14px;padding:14px;background:var(--bg);border-radius:14px;border:1.5px dashed rgba(0,0,0,0.15);">
+          <div id="preview-wrap" style="width:56px;height:56px;border-radius:50%;background:var(--gl);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:var(--gd);overflow:hidden;flex-shrink:0;border:2px solid var(--gm);">
+            {% if user['avatar'] %}<img id="preview-img" src="{{user['avatar']}}" style="width:100%;height:100%;object-fit:cover;">{% else %}<span id="preview-txt">{{user['name'][0]}}</span>{% endif %}
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:4px;">Change photo</div>
+            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:8px;">JPG, PNG, GIF, or WebP</div>
+            <label style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--green);color:#fff;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;text-transform:none;letter-spacing:0;">
+              📷 Choose photo
+              <input type="file" name="avatar" accept="image/*" style="display:none;" id="avatar-input" onchange="previewPhoto(this)">
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="fg"><label>Bio</label><textarea name="bio" placeholder="Tell the community about yourself...">{{user['bio'] or ''}}</textarea></div>
+      <div class="fg"><label>Barangay</label><input type="text" name="barangay" value="{{user['barangay']}}" required></div>
+      <button type="submit" class="btn btn-primary">Save changes ✅</button>
+    </form>
+  </div>
+
+  {% if session.user_role=='volunteer' %}
+  <div class="card" style="background:var(--gl);border-color:var(--gm);text-align:center;">
+    <div style="font-size:14px;font-weight:800;color:var(--gd);margin-bottom:4px;">🏅 Points System</div>
+    <div style="font-size:13px;color:var(--gd);font-weight:700;">Urgent = 10 pts · Medium = 7 pts · Normal = 5 pts</div>
+  </div>
+  {% endif %}
+</div>
+<script>
+function previewPhoto(input){
+  if(input.files&&input.files[0]){
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const wrap=document.getElementById('preview-wrap');
+      wrap.innerHTML=`<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;">`;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends 'base.html' %}{% set active_page='notifications' %}
+{% block topbar %}
+<a href="/dashboard" style="font-size:22px;text-decoration:none;color:#fff;font-weight:800;">←</a>
+<div class="topbar-title">Notifications</div>
+<div style="width:40px;"></div>
+{% endblock %}
+{% block content %}
+<div class="page-content">
+{% for n in notifications %}
+<div class="notif-item {{'unread' if not n['is_read']}}" style="animation-delay:{{loop.index0*0.05}}s;">
+  <div>{{n['message']}}</div>
+  <div class="notif-time">🕐 {{n['created_at'][:16]}}</div>
+</div>
+{% else %}
+<div class="empty">
+  <div style="font-size:48px;margin-bottom:12px;">🔔</div>
+  No notifications yet.<br>We'll let you know when something happens!
+</div>
+{% endfor %}
+</div>
+{% endblock %}
