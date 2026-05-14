@@ -2,8 +2,6 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 import sqlite3, hashlib, json, os
 from datetime import datetime
 from functools import wraps
-from dotenv import load_dotenv
-load_dotenv()
 from authlib.integrations.flask_client import OAuth
 
 app = Flask(__name__)
@@ -19,8 +17,8 @@ oauth = OAuth(app)
 
 oauth.register(
     name='google',
-    client_id=os.environ.get('GOOGLE_CLIENT_ID'),
-    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
+    client_id=os.environ.get('GOOGLE_CLIENT_ID', 'YOUR_GOOGLE_CLIENT_ID'),
+    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET', 'YOUR_GOOGLE_CLIENT_SECRET'),
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={'scope': 'openid email profile'},
 )
@@ -55,12 +53,13 @@ def login_required(f):
     return decorated
 
 def set_session(user):
+    user_dict = dict(user)
     session.update({
-        'user_id':      user['id'],
-        'user_name':    user['name'],
-        'user_role':    user['role'],
-        'user_barangay':user['barangay'],
-        'user_avatar':  user['avatar'],
+        'user_id':       user_dict.get('id'),
+        'user_name':     user_dict.get('name',''),
+        'user_role':     user_dict.get('role','resident'),
+        'user_barangay': user_dict.get('barangay',''),
+        'user_avatar':   user_dict.get('avatar', None),
     })
 
 def upsert_oauth_user(email, name, avatar_url, provider):
@@ -130,10 +129,20 @@ def init_db():
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
     ''')
-    # Migrations
-    for col, dflt in [('avatar','NULL'), ('bio',"''"), ('barangay',"''")]:
+    # Migrations — run every startup to ensure all columns exist
+    migrations = [
+        "ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT NULL",
+        "ALTER TABLE users ADD COLUMN bio TEXT DEFAULT ''",
+        "ALTER TABLE users ADD COLUMN barangay TEXT DEFAULT ''",
+        "ALTER TABLE requests ADD COLUMN lat REAL DEFAULT NULL",
+        "ALTER TABLE requests ADD COLUMN lng REAL DEFAULT NULL",
+        "ALTER TABLE requests ADD COLUMN accepted_at TEXT DEFAULT NULL",
+        "ALTER TABLE requests ADD COLUMN completed_at TEXT DEFAULT NULL",
+        "ALTER TABLE requests ADD COLUMN volunteer_feedback TEXT DEFAULT ''",
+    ]
+    for sql in migrations:
         try:
-            conn.execute(f'ALTER TABLE users ADD COLUMN {col} TEXT DEFAULT {dflt}')
+            conn.execute(sql)
             conn.commit()
         except: pass
     conn.commit()
@@ -502,4 +511,4 @@ def api_unread():
 
 if __name__ == '__main__':
     init_db()
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
+    app.run(debug=True)
