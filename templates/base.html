@@ -18,7 +18,7 @@
     --bg:#F0F4F2; --surface:#FFFFFF;
     --border:rgba(0,0,0,0.07);
     --text:#1A1A1A; --muted:#6B6B6B; --hint:#AEAEB2;
-    --nav-height:72px;
+    --nav-height:68px;
     --topbar-height:60px;
     --safe-top:env(safe-area-inset-top, 44px);
     --safe-bottom:env(safe-area-inset-bottom, 34px);
@@ -38,7 +38,6 @@
     display:flex;
     flex-direction:column;
   }
-
   .app-shell { display:flex; flex-direction:column; height:100%; overflow:hidden; }
 
   /* ── TOP BAR ── */
@@ -52,13 +51,13 @@
   .topbar-row { display:flex; align-items:center; justify-content:space-between; }
   .topbar-title { font-size:20px; font-weight:800; color:#fff; }
   .topbar-subtitle { font-size:12px; color:rgba(255,255,255,0.7); margin-top:1px; font-weight:600; }
-  .topbar-actions { display:flex; gap:8px; align-items:center; }
+  .topbar-actions { display:flex; gap:10px; align-items:center; }
+
   .icon-btn {
     width:40px; height:40px;
     background:rgba(255,255,255,0.15);
     border-radius:50%;
     display:flex; align-items:center; justify-content:center;
-    font-size:18px;
     text-decoration:none;
     position:relative;
     border:none; cursor:pointer;
@@ -66,15 +65,17 @@
     transition:background .15s;
   }
   .icon-btn:active { background:rgba(255,255,255,0.25); }
+  .icon-btn svg { width:20px; height:20px; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
   .badge {
-    position:absolute; top:5px; right:5px;
-    width:10px; height:10px;
+    position:absolute; top:6px; right:6px;
+    width:9px; height:9px;
     background:#FF6B6B;
     border-radius:50%;
-    border:2px solid transparent;
+    border:2px solid rgba(255,255,255,0.3);
     animation:pulse 2s infinite;
   }
-  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,107,107,0.4);}50%{box-shadow:0 0 0 6px rgba(255,107,107,0);}}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,107,107,0.4);}50%{box-shadow:0 0 0 5px rgba(255,107,107,0);}}
 
   /* Avatar in topbar */
   .topbar-avatar {
@@ -83,7 +84,8 @@
     display:flex; align-items:center; justify-content:center;
     font-size:15px; font-weight:800; color:#fff;
     text-decoration:none; overflow:hidden;
-    border:2px solid rgba(255,255,255,0.3);
+    border:2px solid rgba(255,255,255,0.35);
+    flex-shrink:0;
   }
   .topbar-avatar img { width:100%; height:100%; object-fit:cover; }
 
@@ -103,10 +105,10 @@
     transform:translateX(-50%);
     width:100%; max-width:430px;
     height:calc(var(--nav-height) + var(--safe-bottom));
-    background:rgba(255,255,255,0.96);
+    background:rgba(255,255,255,0.97);
     backdrop-filter:saturate(180%) blur(20px);
     -webkit-backdrop-filter:saturate(180%) blur(20px);
-    border-top:0.5px solid rgba(29,158,117,0.15);
+    border-top:0.5px solid rgba(29,158,117,0.12);
     display:flex;
     align-items:flex-start;
     justify-content:space-around;
@@ -116,19 +118,43 @@
   }
   .nav-item {
     display:flex; flex-direction:column;
-    align-items:center; gap:3px;
+    align-items:center; gap:4px;
     flex:1; padding:4px 2px;
     text-decoration:none;
     cursor:pointer;
     border:none; background:transparent;
     font-family:'Nunito',sans-serif;
     transition:transform .15s;
+    min-width:0;
   }
-  .nav-item:active { transform:scale(0.9); }
-  .nav-icon { font-size:22px; line-height:1; }
-  .nav-label { font-size:10px; font-weight:700; color:var(--hint); }
+  .nav-item:active { transform:scale(0.88); }
+  .nav-icon {
+    width:26px; height:26px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .nav-icon svg {
+    width:24px; height:24px;
+    fill:none; stroke:var(--hint);
+    stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;
+    transition:stroke .2s;
+  }
+  .nav-item.active .nav-icon svg { stroke:var(--green); }
+  .nav-label { font-size:10px; font-weight:700; color:var(--hint); transition:color .2s; }
   .nav-item.active .nav-label { color:var(--green); }
-  .nav-dot { width:5px; height:5px; background:var(--green); border-radius:50%; margin-top:-2px; }
+  .nav-dot { width:4px; height:4px; background:var(--green); border-radius:50%; margin-top:-2px; }
+
+  /* FAB + button */
+  .nav-fab {
+    width:52px; height:52px;
+    background:linear-gradient(135deg,#1D9E75,#0d7a5a);
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    margin-top:-20px;
+    box-shadow:0 6px 20px rgba(29,158,117,0.5);
+    border:3px solid #fff;
+    flex-shrink:0;
+  }
+  .nav-fab svg { width:26px; height:26px; stroke:#fff; stroke-width:2.2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
 
   /* ── FLASH ── */
   .flash { padding:13px 16px; border-radius:14px; font-size:14px; margin-bottom:12px; font-weight:700; display:flex; align-items:center; gap:8px; }
@@ -268,10 +294,6 @@
   .divider { display:flex; align-items:center; gap:10px; margin:14px 0; color:var(--hint); font-size:13px; }
   .divider::before,.divider::after { content:''; flex:1; height:.5px; background:var(--border); }
   .empty { text-align:center; padding:48px 16px; color:var(--muted); font-size:15px; line-height:1.8; font-weight:700; }
-
-  /* Notification bell animation */
-  @keyframes bellRing{0%,100%{transform:rotate(0);}10%,30%,50%{transform:rotate(-15deg);}20%,40%{transform:rotate(15deg);}}
-  .bell-ring { animation:bellRing 1.5s ease 2s infinite; display:inline-block; }
 </style>
 </head>
 <body>
@@ -282,15 +304,24 @@
       {% block topbar %}
       <div>
         <div class="topbar-subtitle">Good day,</div>
-        <div class="topbar-title">{{ session.user_name.split()[0] }} 👋</div>
+        <div class="topbar-title">{{ session.user_name.split()[0].upper() if session.user_name else '' }}, 👋</div>
       </div>
       <div class="topbar-actions">
-        <a href="/notifications" class="icon-btn">
-          <span class="bell-ring">🔔</span>
+        <!-- Notification bell -->
+        <a href="/notifications" class="icon-btn" aria-label="Notifications">
+          <svg viewBox="0 0 24 24">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
           {% if unread > 0 %}<div class="badge"></div>{% endif %}
         </a>
-        <a href="/profile" class="topbar-avatar">
-          {% if session.user_avatar %}<img src="{{ session.user_avatar }}" alt="">{% else %}{{ session.user_name[0] }}{% endif %}
+        <!-- Profile avatar -->
+        <a href="/profile" class="topbar-avatar" aria-label="Profile">
+          {% if session.user_avatar %}
+            <img src="{{ session.user_avatar }}" alt="">
+          {% else %}
+            {{ session.user_name[0].upper() if session.user_name else '?' }}
+          {% endif %}
         </a>
       </div>
       {% endblock %}
@@ -310,37 +341,71 @@
 
 {% if session.user_id %}
   <nav class="bottom-nav">
+
+    <!-- Home -->
     <a href="/dashboard" class="nav-item {{ 'active' if active_page=='dashboard' }}">
-      <div class="nav-icon">🏠</div>
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
       <div class="nav-label">Home</div>
       {% if active_page=='dashboard' %}<div class="nav-dot"></div>{% endif %}
     </a>
+
+    <!-- Requests -->
     <a href="/requests" class="nav-item {{ 'active' if active_page=='requests' }}">
-      <div class="nav-icon">📋</div>
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+      </div>
       <div class="nav-label">Requests</div>
       {% if active_page=='requests' %}<div class="nav-dot"></div>{% endif %}
     </a>
+
+    <!-- FAB (resident only) or Map placeholder -->
     {% if session.user_role == 'resident' %}
-    <a href="/submit" class="nav-item {{ 'active' if active_page=='submit' }}">
-      <div style="width:52px;height:52px;background:linear-gradient(135deg,#1D9E75,#0d7a5a);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;margin-top:-20px;box-shadow:0 6px 20px rgba(29,158,117,0.5);border:3px solid #fff;">+</div>
-      <div class="nav-label" style="margin-top:2px;">Ask Help</div>
+    <a href="/submit" class="nav-item" style="flex:0 0 auto;">
+      <div class="nav-fab">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>
+      <div class="nav-label" style="margin-top:4px;">Ask Help</div>
     </a>
+    {% else %}
+    <div style="flex:1;"></div>
     {% endif %}
+
+    <!-- Map -->
     <a href="/map" class="nav-item {{ 'active' if active_page=='map' }}">
-      <div class="nav-icon">🗺️</div>
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24">
+          <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+          <line x1="8" y1="2" x2="8" y2="18"/>
+          <line x1="16" y1="6" x2="16" y2="22"/>
+        </svg>
+      </div>
       <div class="nav-label">Map</div>
       {% if active_page=='map' %}<div class="nav-dot"></div>{% endif %}
     </a>
+
+    <!-- My Tasks -->
     <a href="/my-requests" class="nav-item {{ 'active' if active_page=='my_requests' }}">
-      <div class="nav-icon">📌</div>
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24">
+          <polyline points="9 11 12 14 22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+      </div>
       <div class="nav-label">My Tasks</div>
       {% if active_page=='my_requests' %}<div class="nav-dot"></div>{% endif %}
     </a>
-    <a href="/profile" class="nav-item {{ 'active' if active_page=='profile' }}">
-      <div class="nav-icon">👤</div>
-      <div class="nav-label">Profile</div>
-      {% if active_page=='profile' %}<div class="nav-dot"></div>{% endif %}
-    </a>
+
   </nav>
 
   <script>
@@ -351,13 +416,15 @@
         const r=await fetch('/api/unread');
         const d=await r.json();
         const badge=document.querySelector('.badge');
-        const bellWrap=document.querySelector('.icon-btn');
+        const bellBtn=document.querySelector('.icon-btn');
         if(d.count>0){
-          if(bellWrap&&!badge){
+          if(bellBtn&&!badge){
             const b=document.createElement('div');
             b.className='badge';
-            bellWrap.appendChild(b);
+            bellBtn.appendChild(b);
           }
+        } else {
+          if(badge) badge.remove();
         }
       }catch(e){}
     },30000);
